@@ -1,0 +1,192 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\cores\\esp32"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\variants\\doitESP32devkitV1"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "WiFi.h",
+    "Includepath": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "Network.h",
+    "Includepath": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "AsyncTCP.h",
+    "Includepath": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\Async_TCP\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "ESPAsyncWebServer.h",
+    "Includepath": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "FS.h",
+    "Includepath": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\FS\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\arduino\\sketches\\77160A270AA02AB727D9F2DEB6DE685D\\sketch\\sketch_jun20a.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\AP.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\STA.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFi.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFiAP.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFiGeneric.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFiMulti.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFiSTA.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\WiFi\\src\\WiFiScan.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkClient.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkEvents.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkInterface.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkManager.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkServer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\Network\\src\\NetworkUdp.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\Async_TCP\\src\\AsyncTCP.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncEventSource.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncJson.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncMessagePack.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncWebHeader.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncWebSocket.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\BackPort_SHA1Builder.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\ChunkPrint.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\Middleware.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebAuthentication.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebHandlers.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebRequest.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebResponses.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "c:\\Users\\minec\\OneDrive\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebServer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\FS\\src\\FS.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\minec\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.2.0\\libraries\\FS\\src\\vfs_api.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
