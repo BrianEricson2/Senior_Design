@@ -1,0 +1,56 @@
+// Pin Assignments
+const int pumpPin    = 5;    // MOSFET gate for pump
+const int ledPin     = 2;    // Onboard blue LED
+const int buttonPin  = 0;    // BOOT button (GPIO 0)
+const int batteryPin = 35;   // Battery voltage divider input
+
+// Resistor divider values
+const float R1 = 100.0; // kΩ (top)
+const float R2 = 47.0;  // kΩ (bottom)
+
+// ADC and calibration
+const float vRef = 3.3;         // ADC reference voltage (ESP32)
+const float correctionFactor = 1.05; // Tune this to match real voltmeter
+
+bool isOn = false;
+bool lastButtonState = HIGH;
+
+void setup() {
+  pinMode(pumpPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);  // BOOT button = active low
+
+  digitalWrite(pumpPin, LOW);
+  digitalWrite(ledPin, LOW);
+
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("Manual pump toggle initialized.");
+}
+
+void loop() {
+  // --- Battery voltage read and scale ---
+  int raw = analogRead(batteryPin);
+  float v_adc = raw * vRef / 4095.0;
+  float batteryVoltage = v_adc * ((R1 + R2) / R2) * correctionFactor;
+
+  // --- Serial Output ---
+  Serial.print("Battery Voltage: ");
+  Serial.print(batteryVoltage, 2);
+  Serial.print(" V\tPump: ");
+  Serial.println(isOn ? "ON" : "OFF");
+
+  // --- Button edge detection (toggle)
+  bool buttonState = digitalRead(buttonPin);
+
+  if (lastButtonState == HIGH && buttonState == LOW) {
+    isOn = !isOn;
+    Serial.println(isOn ? "Pump turned ON" : "Pump turned OFF");
+    digitalWrite(pumpPin, isOn ? HIGH : LOW);
+    digitalWrite(ledPin, isOn ? HIGH : LOW);
+    delay(250); // debounce
+  }
+
+  lastButtonState = buttonState;
+  delay(200);
+}
