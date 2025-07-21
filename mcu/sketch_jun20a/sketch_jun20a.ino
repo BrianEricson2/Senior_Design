@@ -13,6 +13,8 @@
 #include <ESPAsyncWebServer.h>
 #include <WiFiAP.h>
 #include "esp_sleep.h"
+#include <Wire.h>
+#include <BH1750.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* GLOBAL VARIABLES */
@@ -34,31 +36,46 @@ IPAddress esp_ap_ip_addr = "";
 // ESP will connect to this AP as station for length of use
 //String client_ap_ssid = "";
 //String client_ap_pw = "";
-String client_ap_ssid = "Rialto_Resident";
-String client_ap_pw = "rock144ancient";
+String client_ap_ssid = "";
+String client_ap_pw = "";
 
 // state variables
 bool end_ap_state = false;
 bool end_station_init_state = false;
 bool enter_sleep_state = false;
 bool moisture_sensor_init = false;
+bool initial_sleep_done = false;
 
 // "Valid values should be positive values less than RTC slow clock period * (2 ^ RTC timer bitwidth)."
 int sleep_duration_us = 30000000;
 int current_SMV = -1;
 float dry_SMV = -1;
 float wet_SMV = -1;
-float max_SMV_frac = 0.90;
-float min_SMV_frac = 0.25;
-float max_SMV_threshold = -1;
-float min_SMV_threshold = -1;
+float SMV_frac = 0.25;
+float SMV_threshold = -1;
 
 unsigned int watering_duration = 0;
 float water_lvl = -1;
+float light_val_lux = 0;
+unsigned int total_sunlight_cnt = 0;
+float battery_lvl = 0;
 
-//const int pump_pin = -1;
+const int pump_pin = -1;
 const int water_lvl_sensor_pin = 34;
-const int moisture_sensor_pin = 35;
+const int sms_data_pin = 35;
+const int sms_power_pin = 32;
+const int light_sensor_pwr_pin = 23;
+const int battery_lvl_pin = 5;
+
+// use addr 0x23 if addr pin voltage is < 0.7*Vcc
+// use addr 0x5C if addr pin voltage is > 0.7*Vcc
+BH1750 light_sensor(0x23);
+
+// ADC and calibration
+const float vRef = 3.3;         // ADC reference voltage (ESP32)
+const float correctionFactor = 1.05; // Tune this to match real voltmeter
+const int R1 = 10000;
+const int R2 = 5000;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +108,7 @@ char dry_SMV_sensor_page[] = R"rawliteral(
 <p>The moisture sensor must be held in the air to initialize value of dry soil (0% humidity).<br>
 Press OK when moisture sensor is held in the air.</p>
 <form action="/get">
-<input type="submit" name="submit_button">
+<input type="submit" name="submit_button" value="OK">
 </form>
 </body> </html>)rawliteral";
 
@@ -102,7 +119,7 @@ char wet_SMV_sensor_page[] = R"rawliteral(
 <p>The moisture sensor must be held in water to initialize value of wet soil (100% humidity).<br>
 Press OK when moisture sensor is held in the water.</p>
 <form action="/get">
-<input type="submit" name="submit_button">
+<input type="submit" name="submit_button" value="OK">
 </form>
 </body> </html>)rawliteral";
 
@@ -111,9 +128,9 @@ char main_page[] = R"(
 <head> <title>main_page</title> </head>
 <body>
 <form action=/get target="_self">
-<label for="max_SMV_perc">maximum soil moisture threshold (percent):</label>
-<input type="text" name="max_SMV_perc"><br>
-Current max SMV threshold = %max_SMV_perc%<br><br>
+<label for="SMV_perc">maximum soil moisture threshold (percent):</label>
+<input type="text" name="SMV_perc"><br>
+Current max SMV threshold = %SMV_perc%<br><br>
 <input type="submit" value="Enter">
 </form>
 </body> </html>)";
@@ -124,9 +141,13 @@ int serial_output = 255;
 void setup() {
   Serial.begin(9600);
 
-  //pinMode(pump_pin,OUTPUT);
+  pinMode(pump_pin,OUTPUT);
   pinMode(water_lvl_sensor_pin,INPUT);
-  pinMode(moisture_sensor_pin,INPUT);
+  pinMode(sms_data_pin,INPUT);
+  pinMode(sms_power_pin,OUTPUT);
+  pinMode(light_sensor_pwr_pin,OUTPUT);
+  Wire.begin();
+  light_sensor.begin(BH1750::UNCONFIGURED);
 
   while (!end_ap_state || !end_station_init_state || !moisture_sensor_init || !enter_sleep_state) {
     end_ap_state = true;
@@ -134,6 +155,10 @@ void setup() {
       ap_init_state();
 
       delay(500);
+
+      //Serial.println("");
+      //Serial.println(client_ap_ssid);
+      //Serial.println(client_ap_pw);
 
       //client_ap_ssid = "Rialto_Resident";
       //client_ap_pw = "rock144ancient";
@@ -159,17 +184,6 @@ void setup() {
     //  esp_sleep_enable_timer_wakeup(sleep_duration_us);
     //}
   }
-  Serial.println("Begin main server");
-  main_server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    (*request).send(200,"text/html",main_page, varRepl); } );
-
-  main_server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
-    if(request->hasParam("ssid")) {
-      max_SMV_frac = (request->getParam("max_SMV_perc")->value()).toFloat()/100.0;
-    }
-    request->send(200, "text/html", front_page, varRepl);
-  });
-  main_server.begin();
 }
 
 // replaces html variable names with value of corresponding variable in ESP memory 
@@ -180,8 +194,8 @@ String varRepl(const String& var){
   if(var == "pswd"){
     return client_ap_pw;
   }
-  if(var == "max_SMV_perc"){
-    return String((max_SMV_frac)*100.0);
+  if(var == "SMV_perc"){
+    return String((SMV_frac)*100.0);
   }
 }
 
@@ -201,11 +215,9 @@ void ap_init_state () {
   }
 
   async_web_server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    (*request).send(200,"text/html",front_page, varRepl); } );
+    request->send(200,"text/html",front_page, varRepl); } );
 
   async_web_server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
-    String ssid_temp;
-    String pw_temp;
     if(request->hasParam("ssid")) {
       client_ap_ssid = request->getParam("ssid")->value();
     }
@@ -215,7 +227,13 @@ void ap_init_state () {
     end_ap_state = (client_ap_ssid != "" && client_ap_pw != "");
     request->send(200, "text/html", front_page, varRepl);
   });
+
   async_web_server.begin();
+
+  while (!end_ap_state) {
+    //Serial.print("ESP AP IP Address: "); Serial.println(esp_ap_ip_addr);
+    delay(200);
+  }
 }
 
 void station_init_state() {
@@ -247,15 +265,67 @@ void station_init_state() {
   }
 }
 
-// SMV = soil moisture value
-float getSMV() {
-  int temp = 0; int N=3;
+float get_wet_SMV() {
+  digitalWrite(sms_power_pin,HIGH);
+  delay(2500);
+  float SMV_temp = 0; int N = 10;
+  float wet_SMV = analogRead(sms_data_pin);
+
+  Serial.println();
   for (int i = 0; i < N; i++) {
-    temp += analogRead(moisture_sensor_pin);
-    delay(100);
+    delay(250);
+    SMV_temp = analogRead(sms_data_pin);
+    Serial.print(SMV_temp); Serial.print(" ");
+    if (wet_SMV > SMV_temp)
+      wet_SMV = SMV_temp;
   }
-  float SMV = (1.0 * temp) / N;
-  Serial.print("SMV value: "); Serial.println(SMV);
+  Serial.println();
+
+  digitalWrite(sms_power_pin,LOW);
+  Serial.print("wet (minimum) SMV: "); Serial.println(wet_SMV);
+  return wet_SMV;
+}
+
+float get_dry_SMV() {
+  digitalWrite(sms_power_pin,HIGH);
+  delay(2500);
+  float SMV_temp = 0; int N = 10;
+  float dry_SMV = analogRead(sms_data_pin);
+
+  Serial.println();
+  for (int i = 0; i < N; i++) {
+    delay(500);
+    SMV_temp = analogRead(sms_data_pin);
+    Serial.print(SMV_temp); Serial.print(" ");
+    if (dry_SMV < SMV_temp)
+      dry_SMV = SMV_temp;
+  }
+  Serial.println();
+
+  digitalWrite(sms_power_pin,LOW);
+  Serial.print("dry (maximum) SMV: "); Serial.println(dry_SMV);
+  return dry_SMV;
+}
+
+// SMV = soil moisture value
+float get_SMV() {
+  digitalWrite(sms_power_pin,HIGH);
+  delay(2500);
+  float SMV = 0; int N=10;
+  float SMV_temp = 0;
+  for (int i = 0; i < N; i++) {
+    SMV_temp = analogRead(sms_data_pin);
+    SMV += SMV_temp;
+    if (SMV > SMV_temp)
+      SMV = SMV_temp;
+    if (SMV < SMV_temp)
+      SMV = SMV_temp;
+    delay(500);
+  }
+
+  digitalWrite(sms_power_pin,LOW);
+  SMV = SMV / N;
+  Serial.print("SMV Value: "); Serial.println(SMV);
   return SMV;
 }
 
@@ -266,12 +336,12 @@ void init_moisture_sensor() {
       (*request).send(200,"text/html",dry_SMV_sensor_page); } );
     main_server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
       if(request->hasParam("submit_button")) {
-        dry_SMV = 2;
+        dry_SMV = get_dry_SMV();
         Serial.println(dry_SMV);
       }
       request->send(200, "text/html", wet_SMV_sensor_page);
     });
-    delay(250);
+    delay(500);
   }
 
   while (wet_SMV < 0) {
@@ -279,12 +349,12 @@ void init_moisture_sensor() {
       (*request).send(200,"text/html",wet_SMV_sensor_page); } );
     main_server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
       if(request->hasParam("submit_button")) {
-        wet_SMV = 2;
+        wet_SMV = get_wet_SMV();
         Serial.println(wet_SMV);
       }
       request->send(200, "text/html", wet_SMV_sensor_page);
     });
-    delay(100);
+    delay(500);
   }
 
   moisture_sensor_init = !(dry_SMV < 0 || wet_SMV < 0);
@@ -293,54 +363,131 @@ void init_moisture_sensor() {
 }
 
 void water_plant() {
-  unsigned long start_time = micros();
-  //digitalWrite(pump_pin, HIGH);
-  unsigned long dist_from_limit = 4294967295 - start_time;
-  if(dist_from_limit > watering_duration) {
-    while((micros() - start_time) < watering_duration) {}
+  Serial.println("Enabling power to plant");
+  unsigned long current_time = micros();
+  digitalWrite(pump_pin, HIGH);
+  // (max limit - buffer) - current_time
+  //buffer needed because 
+  unsigned long dist_from_limit = (4294967295 - 100000) - current_time;
+  if(dist_from_limit > watering_duration) { //if watering duration will not exceed limit
+    while((micros() - current_time) < watering_duration) {}
   }
-  else{
+  else{ // watering duration will exceed limit
     unsigned long stop_counter = watering_duration - dist_from_limit;
     while(micros() < stop_counter) {}
   }
-  //digitalWrite(pump_pin, LOW);
+  digitalWrite(pump_pin, LOW);
+  Serial.println("Disabling power to plant");
+  Serial.print("start time: "); Serial.println(current_time);
+  Serial.print("finish time: "); Serial.println(micros());
 }
 
-float get_water_lvl () {
-  int temp = 0; int N=3;
-  for (int i = 0; i < N; i++) {
-    temp += analogRead(water_lvl_sensor_pin);
-    delay(100);
+float get_light_val () {
+  // supply 3.3V to light sensor Vcc
+  digitalWrite(light_sensor_pwr_pin,HIGH);
+  delay(50);
+  // configure light_sensor into continuous high resolution mode
+  light_sensor.configure(BH1750::CONTINUOUS_HIGH_RES_MODE);
+  delay(50);
+  // light_val - return variable; stores total then divide by N to get average
+  // N - number of measurements
+  // temp - each individual measurement
+  // fail_cnt - number of times measurementReady() fails
+  float light_val = 0; int N=5;
+  float temp = 0; int fail_cnt = 0;
+
+  for(int i = 0; i < N; i++){
+
+    while (!light_sensor.measurementReady()) {
+      // waits at most 2.5s before returning 0 & outputting failure message to serial monitor
+      delay(50); fail_cnt++;
+      if(fail_cnt >= 50) {
+        Serial.println("Measurement Ready failed for light sensor. Returning 0.");
+        return 0;
+      }
+    }
+
+    temp = light_sensor.readLightLevel(); //measurement
+
+    // readLightLevel returns -1 or -2 if failure occurs
+    if(temp > 0) {
+      light_val += temp;
+    }
+    else { // failure
+      // retry another measurement
+      i = i-1;
+    }
+    delay(50);
   }
-  float water_lvl = (1.0 * temp) / N;
-  Serial.print("Water Level value: "); Serial.println(water_lvl);
-  return water_lvl;
+
+  light_val = light_val / N;
+  Serial.print("Light Value: "); Serial.println(light_val);
+  // power down light sensor
+  light_sensor.configure(BH1750::UNCONFIGURED);
+  delay(50);
+  // disable 3.3V power to light sensor
+  digitalWrite(light_sensor_pwr_pin,LOW);
+  return light_val;
+}
+
+float read_light_sensor () {
+  int sunlight_threshold = 10000;
+  float new_light_val = get_light_val();
+  unsigned int sunlight_interval = sleep_duration_us/100;
+  if ((new_light_val <= sunlight_threshold && light_val_lux >= sunlight_threshold) || (new_light_val >= sunlight_threshold && light_val_lux <= sunlight_threshold)) {
+    total_sunlight_cnt += sunlight_interval / 2;
+  }
+  /*if ((new_light_val <= sunlight_threshold) ^ (light_val_lux >= sunlight_threshold)) {
+    total_sunlight_cnt += sunlight_interval / 2;
+  }*/
+  else if (new_light_val > sunlight_threshold && light_val_lux > sunlight_threshold) {
+    total_sunlight_cnt += sunlight_interval;
+  }
+  light_val_lux = new_light_val;
+  return light_val_lux;
+}
+
+void read_battery_level() {
+  int raw = analogRead(battery_lvl_pin);
+  float v_adc = raw * vRef / 4095.0;
+  battery_lvl = v_adc * ((R1 + R2) / R2) * correctionFactor;
 }
 
 void loop() {
-  Serial.println("Entering light-sleep mode.");
-  //sleep_state = true;
-  Serial.println("Disabling all wakeup sources.");
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-
-  Serial.println("Enabling WiFi, WiFi Beacon (modem-sleep), and timer wakeup sources.");
-  esp_sleep_enable_wifi_wakeup();
-  esp_sleep_enable_wifi_beacon_wakeup();
-  esp_sleep_enable_timer_wakeup(sleep_duration_us);
-  esp_light_sleep_start();
-  esp_sleep_wakeup_cause_t wakeup_cause = esp_sleep_get_wakeup_cause();
+  esp_sleep_wakeup_cause_t wakeup_cause;
+  if(initial_sleep_done) {
+    wakeup_cause = esp_sleep_get_wakeup_cause();
+    initial_sleep_done = true;
+  }
+  else {
+    wakeup_cause = ESP_SLEEP_WAKEUP_UNDEFINED;
+  }
+  
   switch (wakeup_cause) {
     case ESP_SLEEP_WAKEUP_TIMER:
-      Serial.println("woke up from timer");
-      //current_SMV = getSMV();
-      //if(current_SMV > min_SMV_threshold && current_SMV < max_SMV_threshold){
-      //  water_plant();
-      //}
+      Serial.println("\n\nwoke up from timer");
+      read_battery_level();
+      read_light_sensor();
+      current_SMV = get_SMV();
+      Serial.print("measured SMV: "); Serial.println(current_SMV);
+      SMV_threshold = dry_SMV - (dry_SMV - wet_SMV)*SMV_frac;
+      if(current_SMV > SMV_threshold){
+        water_plant();
+      }
       break;
     case ESP_SLEEP_WAKEUP_WIFI:
       Serial.println("woke up from wifi");
       break;
     default:
+      Serial.println("Entering light-sleep mode.");
+      Serial.println("Disabling all wakeup sources.");
+      esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+
+      Serial.println("Enabling WiFi, WiFi Beacon (modem-sleep), and timer wakeup sources.");
+      esp_sleep_enable_wifi_wakeup();
+      esp_sleep_enable_wifi_beacon_wakeup();
+      esp_sleep_enable_timer_wakeup(sleep_duration_us);
+      esp_light_sleep_start();
       break;
   }
   /*Serial.println(esp_ap_ip_addr);
