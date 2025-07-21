@@ -16,6 +16,8 @@
 
 unsigned int total_sunlight_cnt = 0;
 const int light_sensor_pwr_pin = 23;
+int sleep_duration_us = 30000000;
+float light_val_lux = 0;
 
 // use addr 0x23 if addr pin voltage is < 0.7*Vcc
 // use addr 0x5C if addr pin voltage is > 0.7*Vcc
@@ -99,7 +101,7 @@ float light_sensor_check () {
   /*if ((new_light_val <= sunlight_threshold) ^ (light_val_lux >= sunlight_threshold)) {
     total_sunlight_cnt += sunlight_interval / 2;
   }*/
-  else if (new_light_val > sunlight_threshold && light_val_lux > sunlight_threshold) {
+  else if (new_light_val > sunlight_threshold) {
     total_sunlight_cnt += sunlight_interval;
   }
   return new_light_val;
