@@ -1,0 +1,83 @@
+(footprint "Untitled"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -0.5 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "0c72938d-6549-4b98-a87e-b3a2e9fd81ae")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "Value" "Untitled"
+		(at 0 1 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f146bef0-a5aa-41d3-8af7-e92ad0620dbc")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "098bcd9e-a9b1-4004-9d6f-be1dc2c6cc00")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "88798b87-277d-40af-8c3e-47ba6d9943bb")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_poly
+		(pts
+			(xy 4 0) (xy 3.956706 0) (xy 3.880125 0) (xy 3.766176 0) (xy 3.615957 0) (xy 3.430914 0) (xy 3.21283 0)
+			(xy 2.963805 0) (xy 2.686236 0) (xy 2.382797 0) (xy 2 0) (xy 1.71022 0) (xy 1.347559 0) (xy 0.971921 0)
+			(xy 0.586922 0) (xy 0.196271 0) (xy -0.196271 0) (xy -0.586922 0) (xy -0.971921 0) (xy -1.347559 0)
+			(xy -1.71022 0) (xy -2 0) (xy -2.382797 0) (xy -2.686236 0) (xy -2.963805 0) (xy -3.21283 0) (xy -3.430914 0)
+			(xy -3.615957 0) (xy -3.766176 0) (xy -3.880125 0) (xy -3.956706 0) (xy -4 0) (xy -3.995182 0.196271)
+			(xy -3.956706 0.586922) (xy -3.880125 0.971921) (xy -3.766176 1.347559) (xy -3.615957 1.71022) (xy -3.430914 2.056411)
+			(xy -3.21283 2.382797) (xy -2.963805 2.686236) (xy -2.686236 2.963805) (xy -2.382797 3.21283) (xy -2.056411 3.430914)
+			(xy -1.71022 3.615957) (xy -1.347559 3.766176) (xy -0.971921 3.880125) (xy -0.586922 3.956706) (xy -0.196271 3.995182)
+			(xy 0.196271 3.995182) (xy 0.586922 3.956706) (xy 0.971921 3.880125) (xy 1.347559 3.766176) (xy 1.71022 3.615957)
+			(xy 2.056411 3.430914) (xy 2.382797 3.21283) (xy 2.686236 2.963805) (xy 2.963805 2.686236) (xy 3.21283 2.382797)
+			(xy 3.430914 2.056411) (xy 3.615957 1.71022) (xy 3.766176 1.347559) (xy 3.880125 0.971921) (xy 3.956706 0.586922)
+			(xy 3.995182 0.196271) (xy 4 0)
+		)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Cu")
+		(uuid "34aba0fe-eebd-4f0f-ba9a-d9a840a19c1d")
+	)
+	(embedded_fonts no)
+)

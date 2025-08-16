@@ -1,0 +1,43 @@
+C CHIP_PU		1	3.3
+B DTR			1	2.5
+				0	0
+E RTS			1	3.3
+				0	0
+
+C DTR			1	3.3
+				0	0
+B RTS			1	2.5
+				0	0
+E BOOT			1	0
+				0	<3.3
+				
+Handshaking:
+1) both RTS & DTR off
+2) RTS ON, DTR OFF
+
+
+T1
+C CHIP_PU		1	3.3
+B DTR			1	0
+				0	2.5
+E RTS			1	0
+				0	3.3
+
+T2
+E DTR			1	0
+				0	3.3
+B RTS			1	0
+				0	2.5
+C BOOT			not pressed	3.3
+				pressed	0
+				
+DTR   RTS	BOOT	T1	T2
+0	  0		P		Cut	Rev
+0     1		P		For	Cut
+1     0		P		Cut Sat
+1     1		P		Cut Cut
+
+0	  0		N		Cut Cut
+0	  1		N		For Cut
+1	  0		N		Cut For
+1	  1		N		Cut	Cut

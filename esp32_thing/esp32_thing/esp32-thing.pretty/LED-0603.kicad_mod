@@ -1,0 +1,88 @@
+(footprint "LED-0603"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "LED 0603 SMT\n\n0603, surface mount.\n\nSpecifications:\n\n• Pin count: 2\n• Pin pitch:0.075inch\n• Area:\n\nExample device(s):")
+	(property "Reference" "REF**"
+		(at -0.635 0 90)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "d06730ac-fe71-4915-b943-ec5dbb16408f")
+		(effects
+			(font
+				(size 0.48768 0.48768)
+				(thickness 0.12192)
+			)
+			(justify bottom)
+		)
+	)
+	(property "Value" "LED-0603"
+		(at 0.635 0 90)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "b12abfa9-b692-4cda-8e37-0f0b7b0091c3")
+		(effects
+			(font
+				(size 0.48768 0.48768)
+				(thickness 0.12192)
+			)
+			(justify top)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b68a5198-c600-4a98-b9b3-70d398ae6c70")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "53e0e8be-9ba8-4022-a343-c86acb8cb0fe")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_line
+		(start -0.47625 -1.5875)
+		(end 0.47625 -1.5875)
+		(stroke
+			(width 0.127)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "28e1c76d-30f2-46f4-9e7c-c43c88df16ca")
+	)
+	(pad "A" smd roundrect
+		(at 0 0.877)
+		(size 1 1)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "0951d89c-b466-4f96-b734-2d7752cbca7d")
+	)
+	(pad "C" smd roundrect
+		(at 0 -0.877)
+		(size 1 1)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(solder_mask_margin 0.1016)
+		(solder_paste_margin 0)
+		(thermal_bridge_angle 0)
+		(uuid "038b49b5-2f54-4f2b-aa79-193f0e586cf5")
+	)
+	(embedded_fonts no)
+)
