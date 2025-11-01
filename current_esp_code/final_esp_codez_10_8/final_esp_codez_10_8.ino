@@ -240,6 +240,7 @@ void wifi_init () {
     if (end_ap_state) {
       //sys_pref.end();
       Serial.println("end_ap_state == true");
+      WiFi.mode(WIFI_STA);
       station_init_state();
     }
   }
@@ -376,13 +377,6 @@ bool setup_uuid() {
     Serial.println("Payload: " + payload);
     tmp_uuid = doc_rx["id"].as<String>();
     uuid = tmp_uuid;
-    Serial.println("Our uuid is: " + uuid);
-    sys_pref.putString("uuid", uuid);
-    sys_pref.end();
-    return true;
-  }
-  if (0) { // use for test uuid if web app not running
-    uuid = "test_uuid_1";
     Serial.println("Our uuid is: " + uuid);
     sys_pref.putString("uuid", uuid);
     sys_pref.end();
