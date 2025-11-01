@@ -86,8 +86,8 @@ const int wls_power_pin = 23; //GPIO23
 const int ledPin1     = 25; // pin 10 on esp32 ic
 const int ledPin2     = 26; // pin 11 on esp32 ic
 const int ledPin3     = 27; // pin 12 on esp32 ic
-const int sms_data_pin = 32; //GPIO34
-const int battery_lvl_pin = 34; //GPIO35
+const int sms_data_pin = 32; //GPIO32
+const int battery_lvl_pin = 34; //GPIO34
 const int wls_signal = 35;
 
 // use addr 0x23 if addr pin voltage is < 0.7*Vcc
@@ -96,23 +96,27 @@ BH1750 light_sensor(0x23);
 
 // ADC and calibration
 const float vRef = 3.3;         // ADC reference voltage (ESP32)
-const float correctionFactor = 1.11; // Tune this to match real voltmeter
+const float correctionFactor = 1.03; // Tune this to match real voltmeter
 const float R1 = 100.0; // kΩ (top)
 const float R2 = 47.0;  // kΩ (bottom)
-
-// Time Correction
-time_t wakeup_time;
-time_t go_sleep_time;
 
 // Flash Memory
 #define RW_MODE false
 #define RO_MODE true
 Preferences sys_pref;
 
-struct timeval tv_now;
-time_t before_wifi_time;
-time_t after_wifi_time;
-time_t prev_ntp_time;
+/////////////////////////////////////////////////////////
+/* LED States
+    LED1    LED2    LED3    State
+    0       0       0       Sleep or between states
+    1       0       0       sensor_check
+    0       1       0       AP State
+    1       1       0       web_data_rx
+    0       0       1       STA State
+    1       0       1       web_data_tx
+    0       1       1
+    1       1       1
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* HTML PAGES/FILES */
@@ -124,24 +128,32 @@ char front_page[] = R"(
 <!DOCTYPE HTML> <html>
 <head> <title>front_page</title> </head>
 <body>
-<form action=/get target="_self">
-<label for="ssid">SSID:</label>
-<input type="text" name="ssid"><br>
-Current ssid = %ssid%<br><br>
-<label for="pswd">Password:</label>
-<input type="text" name="pswd"><br>
-Current password = %pswd%<br>
-<input type="submit" value="Enter">
-</form>
+  <form action=/get target="_self">
+    <label for="ssid">SSID:</label>
+      <input type="text" name="ssid"><br>
+      Current ssid = %ssid%<br><br>
+    <label for="pswd">Password:</label>
+      <input type="text" name="pswd"><br>
+      Current password = %pswd%<br>
+    <input type="submit" value="Enter">
+  </form>
+
+  <div>Follow this url after entering Wi-Fi info: </div>
+  <div class="value-box" id="pot_uuid">Loading...</div>
+
+  <script>
+    async function displayUUID () {
+      response = await fetch('/pot_uuid_ap');
+      document.getElementById('pot_uuid').textContent = await response.text();
+    }
+    setInterval(displayUUID, 2500);
+    displayUUID();
+  </script>
+
 </body> </html>)";
 
 void setup() {
   Serial.begin(9600);
-
-  // get system time after waking up (time before connecting to wifi)
-  //gettimeofday(&tv_now, NULL);
-  //before_wifi_time = tv_now.tv_sec;
-  //Serial.print("before_wifi_time: "); Serial.println(before_wifi_time);
 
   init_pins();
 
@@ -151,17 +163,35 @@ void setup() {
   if(wakeup_cause == ESP_SLEEP_WAKEUP_TIMER) {
     Serial.println("timer wakeup");
     wifi_init();
-    //time_correction();
     setup_uuid();
   }
   else {
     Serial.println("power up");
     wifi_init();
-    //time_correction();
     setup_uuid();
   }
 
-  finish_setup();
+
+  Serial.println("attempting to rx data from web server");
+  // read threshold info set by user via web server
+  // Ensure that we hold until web data is received
+  while (!web_data_rx()) { delay(1000); }
+  Serial.println("done with rx function");
+
+  sensor_check(); //uncomment for production / hardware testing build
+  //delay(5000); // example delay for simulation; mimic delay of sensor_check function
+
+  Serial.println("attempting to tx data to web server");
+  // send sensor data to user via web server
+  web_data_tx();
+  Serial.println("done with tx function");
+
+  enter_deep_sleep(); // use for production
+  /*if (1) { // use this block if not in production
+    Serial.println("Entering deep-sleep mode.");
+    esp_sleep_enable_timer_wakeup(sampling_period_us);
+    esp_deep_sleep_start();
+  }*/
 }
 
 String varRepl(const String& var){
@@ -189,30 +219,6 @@ void init_pins () {
   Wire.begin(); //Wire.begin(I2C_SDA, I2C_SCL);
   //light_sensor.begin();
   Serial.println("Initialized pin modes.");
-}
-
-void finish_setup () {
-
-  Serial.println("attempting to rx data from web server");
-  // read threshold info set by user via web server
-  // Ensure that we hold until web data is received
-  while (!web_data_rx()) { delay(1000); }
-  Serial.println("done with rx function");
-
-  sensor_check(); //uncomment for production / hardware testing build
-  //delay(5000); // example delay for simulation; mimic delay of sensor_check function
-
-  Serial.println("attempting to tx data to web server");
-  // send sensor data to user via web server
-  web_data_tx();
-  Serial.println("done with tx function");
-
-  enter_deep_sleep(); // use for production
-  /*if (1) { // use this block if not in production
-    Serial.println("Entering deep-sleep mode.");
-    esp_sleep_enable_timer_wakeup(sampling_period_us);
-    esp_deep_sleep_start();
-  }*/
 }
 
 void wifi_init () {
@@ -253,8 +259,16 @@ void wifi_init () {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ap_init_state () {
   digitalWrite(ledPin2, HIGH);
-  WiFi.mode(WIFI_AP);
+  IPAddress set_ap_ip(192,168,4,1);
+  IPAddress set_gateway(192,168,4,96);
+  IPAddress set_subnet(255,255,255,0); 
+  WiFi.mode(WIFI_AP_STA);
   if(WiFi.softAP(esp_ap_ssid, esp_ap_pw)){
+    if (WiFi.softAPConfig (set_ap_ip, set_gateway, set_subnet) ) {
+      Serial.println("successfully set AP IP addresses");
+    } else {
+      Serial.println("could not set AP IP addresses");
+    }
     pot_ip_ap = WiFi.softAPIP();
   }
   else {
@@ -278,6 +292,15 @@ void ap_init_state () {
     request->send(200, "text/html", front_page, varRepl);
   });
 
+  async_web_server.on("/pot_uuid_ap", HTTP_GET, [](AsyncWebServerRequest *request){
+    // You could replace this with a real sensor read
+    String val;
+    if(!end_ap_state) { val = "Input Wi-Fi info to receive url."; }
+    else if(uuid == "") { val = "Waiting for pot UUID..."; }
+    else { val = server_url + uuid; }
+    request->send(200, "text/plain", val);
+  });
+
   async_web_server.begin();
 
   while (!end_ap_state) {
@@ -289,60 +312,30 @@ void ap_init_state () {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void station_init_state() {
+  digitalWrite(ledPin3, HIGH);
   int counter = 0;
   if(end_ap_state) {
-  Serial.println("Disconnecting ESP as AP.");
-    if(WiFi.softAPdisconnect()){
-      Serial.println("Initializing ESP32 in station mode.");
-      WiFi.mode(WIFI_STA);
-      if(client_ap_ssid != "" && client_ap_pw != "") {
-        WiFi.begin(client_ap_ssid, client_ap_pw);
-        while(counter < 20) {
-          if(WiFi.isConnected()) {
-            Serial.println("ESP connected to WiFi in station mode.");
-            pot_ip_sta = WiFi.localIP();
-            Serial.println("IP address: "); Serial.println(pot_ip_sta);
-            WiFi.setAutoReconnect(true);
-            end_station_init_state = true;
-            return;
-          }
-          else {
-            delay(500); Serial.print(" ... "); counter++;
-          }
+    Serial.println("Initializing ESP32 in station mode.");
+    if(client_ap_ssid != "" && client_ap_pw != "") {
+      WiFi.begin(client_ap_ssid, client_ap_pw);
+      while(counter < 20) {
+        if(WiFi.isConnected()) {
+          pot_ip_sta = WiFi.localIP();
+          Serial.println("STA IP address: "); Serial.println(pot_ip_sta);
+          WiFi.setAutoReconnect(true);
+          end_station_init_state = true;
+          return;
         }
-        Serial.println("Error connecting to WiFi. Please reenter WiFi info.");
-        end_ap_state = false;
-        return;
+        else {
+          delay(500); Serial.print(" ... "); counter++;
+        }
       }
+      Serial.println("Error connecting to WiFi. Please reenter WiFi info.");
+      end_ap_state = false;
+      return;
     }
   }
-}
-
-void time_correction () {
-  sys_pref.begin("genPrefs", RW_MODE);
-
-  // connect to ntp server, define timeinfo (temp) variable
-  configTime(3600, 3600, "pool.ntp.org");
-  struct tm timeinfo;
-
-  // get time after connecting to wifi & ntp server
-  gettimeofday(&tv_now, NULL);
-  after_wifi_time = tv_now.tv_sec;
-  Serial.print("after_wifi_time: "); Serial.println(after_wifi_time);
-
-  // get time from ntp server, subtract time spent connecting to network/ntp server
-  //    = time after wakeup from deep sleep
-  getLocalTime(&timeinfo);
-  wakeup_time = mktime (&timeinfo) - (after_wifi_time - before_wifi_time);
-  Serial.print("wakeup_time: "); Serial.println(wakeup_time);
-  if(sys_pref.isKey("prevNtpTime")) {
-    prev_ntp_time = (time_t) sys_pref.getLong64("prevNtpTime");
-    Serial.print("prev_ntp_time: "); Serial.println(prev_ntp_time);
-    float time_corr_frac = ((float) sampling_period_us / 1000000.0) / (wakeup_time - prev_ntp_time);
-    Serial.print("time_corr_frac: "); Serial.println(time_corr_frac);
-  }
-
-  sys_pref.end();
+  digitalWrite(ledPin3, LOW);
 }
 
 // POT UUID; there should only be one
@@ -388,9 +381,18 @@ bool setup_uuid() {
     sys_pref.end();
     return true;
   }
+  if (0) { // use for test uuid if web app not running
+    uuid = "test_uuid_1";
+    Serial.println("Our uuid is: " + uuid);
+    sys_pref.putString("uuid", uuid);
+    sys_pref.end();
+    return true;
+  }
 }
 
 bool web_data_rx () {
+  digitalWrite(ledPin1, HIGH);
+  digitalWrite(ledPin2, HIGH);
     // read web server
   HTTPClient http_client;
   uint16_t http_cnt = 0;
@@ -407,6 +409,8 @@ bool web_data_rx () {
   Serial.print("http code for GET: "); Serial.println(http_code);
   if (http_code < 200 || http_code > 299) {
     Serial.println("GET command unsuccessful");
+    digitalWrite(ledPin1, LOW);
+    digitalWrite(ledPin2, LOW);
     return false;
   }
   else {
@@ -425,11 +429,19 @@ bool web_data_rx () {
     //wet_SMV = doc_rx["wet_smv"];
 
     //return true;
+    digitalWrite(ledPin1, LOW);
+    digitalWrite(ledPin2, LOW);
+    Serial.print("sampling_period_us: "); Serial.println(sampling_period_us);
+    Serial.print("watering_duration_us: "); Serial.println(watering_duration_us);
+    Serial.print("maximum_sunlight: "); Serial.println(maximum_sunlight);
+    Serial.print("SMV_frac: "); Serial.println(SMV_frac);
     return (sampling_period_us > 0 && watering_duration_us > 0 && maximum_sunlight > 0 && SMV_frac > 0.0);
   }
 }
 
 bool web_data_tx () {
+  digitalWrite(ledPin1, HIGH);
+  digitalWrite(ledPin3, HIGH);
   HTTPClient http_client;
   uint16_t http_cnt = 0;
   String payload;
@@ -459,10 +471,14 @@ bool web_data_tx () {
   Serial.print("http code for POST: "); Serial.println(http_code);
   if (http_code < 200 || http_code > 299) {
     Serial.println("POST command unsuccessful");
+    digitalWrite(ledPin1, LOW);
+    digitalWrite(ledPin3, LOW);
     return false;
   }
   else {
     Serial.println("POST command successful");
+    digitalWrite(ledPin1, LOW);
+    digitalWrite(ledPin3, LOW);
     return true;
   }
 }
@@ -477,18 +493,6 @@ void enter_deep_sleep () {
   esp_sleep_enable_timer_wakeup(sampling_period_us);
   //esp_sleep_enable_ext0_wakeup(RECONFIG_BUTTON, 0);
   delay(450);
-
-  /*
-  // connect to ntp server, define timeinfo (temp) variable
-  configTime(3600, 3600, "pool.ntp.org");
-  struct tm timeinfo;
-  sys_pref.begin("genPrefs", RW_MODE);
-  // get time before entering sleep; should be moved to just before sleep
-  getLocalTime(&timeinfo);
-  go_sleep_time = mktime (&timeinfo);
-  sys_pref.putLong64("prevNtpTime", go_sleep_time);
-  sys_pref.end();
-  */
 
   esp_deep_sleep_start();
 }
@@ -548,23 +552,11 @@ void water_plant() {
 float get_light_val () {
   // supply 3.3V to light sensor Vcc
   digitalWrite(light_sensor_pwr_pin,HIGH);
-  //delay(250);
-  // configure light_sensor into continuous high resolution mode
-  //light_sensor.configure(BH1750::CONTINUOUS_HIGH_RES_MODE);
-  //delay(50);
-  // light_val - return variable; stores total then divide by N to get average
-  // N - number of measurements
-  // temp - each individual measurement
-  // fail_cnt - number of times measurementReady() fails
-  float light_val = 0; int N=5;
+  float light_val = 0; int N=25;
   float temp = 0; int fail_cnt = 0;
   light_sensor.begin();
 
   for(int i = 0; i < N; i++){
-    if(i == N-1) {
-      //light_sensor.configure(BH1750::ONE_TIME_HIGH_RES_MODE);
-    }
-
     while (!light_sensor.measurementReady()) {
       // waits at most 2.5s before returning 0 & outputting failure message to serial monitor
       delay(50); fail_cnt++;
@@ -589,9 +581,6 @@ float get_light_val () {
 
   light_val = light_val / N;
   Serial.print("Light Value: "); Serial.println(light_val);
-  // power down light sensor
-  //light_sensor.configure(BH1750::UNCONFIGURED);
-  delay(50);
   // disable 3.3V power to light sensor
   digitalWrite(light_sensor_pwr_pin,LOW);
   return light_val;
@@ -619,7 +608,12 @@ float read_light_sensor () {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void read_battery_level() {
-  int raw = analogRead(battery_lvl_pin);
+  int raw_sum = 0; int N = 40;
+  for (int i = 0; i < N; i++) {
+    raw_sum = raw_sum + analogRead(battery_lvl_pin);
+    delay(50);
+  }
+  float raw = raw_sum / N;
   Serial.print("Raw value at battery level pin: "); Serial.println(raw);
   float v_adc = raw * vRef / 4095.0;
   battery_lvl = v_adc * ((R1 + R2) / R2) * correctionFactor;
@@ -655,8 +649,9 @@ void read_water_level() {
 }
 
 void sensor_check () {
+  digitalWrite(ledPin1, HIGH);
   read_battery_level();
-      if(battery_lvl > 0.5){
+      if(battery_lvl > 6.25){
       //if(true) {
         battery_level_low = false;
         read_water_level();
@@ -692,6 +687,7 @@ void sensor_check () {
         battery_level_low = true;
         Serial.println("Battery low");
       }
+  digitalWrite(ledPin1, LOW);
 }
 
 void loop() {
